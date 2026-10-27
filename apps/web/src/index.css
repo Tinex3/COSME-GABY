@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --color-rose-bg: #f7e4e7;
+  --color-rose-soft: #f9eef0;
+  --color-mauve: #c48b9f;
+  --color-mauve-dark: #a96e83;
+  --color-garnet: #9e5f70;
+  --color-garnet-deep: #7d4453;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-display);
+  color: #3f2d33;
+  background: #fdfbfb;
+}
+
+.btn-primary {
+  @apply bg-mauve hover:bg-mauve-dark text-white font-semibold rounded-full px-6 py-2.5 transition-colors cursor-pointer disabled:opacity-50;
+}
+
+.btn-secondary {
+  @apply border-2 border-garnet text-garnet font-semibold rounded-full px-6 py-2 transition-colors hover:bg-garnet hover:text-white cursor-pointer;
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow-[0_4px_20px_rgba(158,95,112,0.12)] border border-rose-bg;
+}
+
+.input {
+  @apply w-full border border-rose-bg rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-mauve/50 bg-white;
+}
+
+.badge-pill {
+  @apply inline-block bg-garnet text-white text-xs font-bold tracking-wider uppercase rounded-full px-4 py-1.5;
+}
+
+.leaflet-container {
+  font-family: var(--font-display);
+}

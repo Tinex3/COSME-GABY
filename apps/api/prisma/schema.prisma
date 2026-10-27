@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  PACIENTE
+  ESPECIALISTA
+  ADMIN
+}
+
+enum ExceptionTipo {
+  BLOQUEO
+  HORARIO_EXTRA
+}
+
+enum AppointmentEstado {
+  CONFIRMADA
+  COMPLETADA
+  CANCELADA
+  NO_PRESENTADO
+}
+
+enum VerificacionEstado {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+enum OrderEstado {
+  PENDIENTE
+  EN_ATENCION
+  COMPLETADA
+  CANCELADA
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  nombre       String
+  telefono     String?
+  roles        Rol[]
+  estado       String        @default("ACTIVO")
+  createdAt    DateTime      @default(now())
+  profile      ProfessionalProfile?
+  appointments Appointment[] @relation("PatientAppointments")
+  reviews      Review[]
+  forumTopics  ForumTopic[]
+  forumReplies ForumReply[]
+  orderEvents  OrderEvent[]
+}
+
+model ProfessionalProfile {
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nombrePublico  String
+  titulo         String        @default("Cosmetóloga")
+  bio            String        @default("")
+  especialidades String[]      @default([])
+  fotoUrl        String?
+  comuna         String        @default("Viña del Mar")
+  lat            Float         @default(-33.0472)
+  lng            Float         @default(-71.5525)
+  verificado     Boolean       @default(false)
+  activo         Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  offerings      ServiceOffering[]
+  rules          AvailabilityRule[]
+  exceptions     AvailabilityException[]
+  appointments   Appointment[] @relation("ProfessionalAppointments")
+  reviews        Review[]
+  credential     Credential?
+  @@index([activo])
+}
+
+model Treatment {
+  id          String           @id @default(cuid())
+  nombre      String
+  slug        String           @unique
+  categoria   String           @default("Facial")
+  duracionMin Int              @default(60)
+  precioClp   Int
+  descripcion String           @default("")
+  activo      Boolean          @default(true)
+  offerings   ServiceOffering[]
+  appointments Appointment[]
+}
+
+model ServiceOffering {
+  id             String              @id @default(cuid())
+  professionalId String
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  treatmentId    String
+  treatment      Treatment           @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  precioCustom   Int?
+  duracionCustom Int?
+  @@unique([professionalId, treatmentId])
+}
+
+model AvailabilityRule {
+  id             String              @id @default(cuid())
+  professionalId String
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  diaSemana      Int
+  horaInicio     String
+  horaFin        String
+  @@index([professionalId, diaSemana])
+}
+
+model AvailabilityException {
+  id             String              @id @default(cuid())
+  professionalId String
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  fecha          DateTime            @db.Date
+  tipo           ExceptionTipo
+  horaInicio     String?
+  horaFin        String?
+  @@index([professionalId, fecha])
+}
+
+model Review {
+  id             String              @id @default(cuid())
+  appointmentId  String              @unique
+  appointment    Appointment         @relation(fields: [appointmentId], references: [id])
+  patientId      String
+  patient        User                @relation(fields: [patientId], references: [id])
+  professionalId String
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  rating         Int
+  texto          String              @default("")
+  createdAt      DateTime            @default(now())
+  @@index([professionalId])
+}
+
+model BlogPost {
+  id        String   @id @default(cuid())
+  titulo    String
+  slug      String   @unique
+  resumen   String
+  body      String
+  coverUrl  String?
+  publicado Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Credential {
+  id               String              @id @default(cuid())
+  professionalId   String              @unique
+  professional     ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  tipo             String              @default("Registro Superintendencia de Salud")
+  numeroRegistro   String
+  archivoUrl       String?
+  estado           VerificacionEstado  @default(PENDIENTE)
+  verificadoPor    String?
+  fechaVerificacion DateTime?
+  createdAt        DateTime            @default(now())
+}
+
+model ForumCategory {
+  id          String       @id @default(cuid())
+  nombre      String
+  slug        String       @unique
+  descripcion String       @default("")
+  orden       Int          @default(0)
+  topics      ForumTopic[]
+}
+
+model ForumTopic {
+  id          String        @id @default(cuid())
+  categoryId  String
+  category    ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  titulo      String
+  contenido   String
+  cerrado     Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  replies     ForumReply[]
+  @@index([categoryId, createdAt])
+}
+
+model ForumReply {
+  id        String      @id @default(cuid())
+  topicId   String
+  topic     ForumTopic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  contenido String
+  createdAt DateTime    @default(now())
+  @@index([topicId, createdAt])
+}
+
+model ServiceOrder {
+  id            String        @id @default(cuid())
+  folio         String        @unique
+  appointmentId String        @unique
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id])
+  estado        OrderEstado   @default(PENDIENTE)
+  notas         String        @default("")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  events        OrderEvent[]
+}
+
+model OrderEvent {
+  id          String       @id @default(cuid())
+  orderId     String
+  order       ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  estado      OrderEstado
+  comentario  String       @default("")
+  actorId     String?
+  actor       User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  @@index([orderId, createdAt])
+}
+
+model Appointment {
+  id             String             @id @default(cuid())
+  patientId      String
+  patient        User               @relation("PatientAppointments", fields: [patientId], references: [id])
+  professionalId String
+  professional   ProfessionalProfile @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
+  treatmentId    String
+  treatment      Treatment          @relation(fields: [treatmentId], references: [id])
+  startAt        DateTime
+  endAt          DateTime
+  estado         AppointmentEstado  @default(CONFIRMADA)
+  nota           String?
+  createdAt      DateTime           @default(now())
+  review         Review?
+  serviceOrder   ServiceOrder?
+  @@unique([professionalId, startAt])
+  @@index([patientId, startAt])
+  @@index([professionalId, startAt])
+}

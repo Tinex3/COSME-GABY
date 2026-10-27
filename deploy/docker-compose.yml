@@ -1,0 +1,44 @@
+name: cosmetia
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cosmetia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD en deploy/.env (ver deploy/.env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:-cosmetia}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cosmetia}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ../apps/api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cosmetia}:${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD en deploy/.env}@db:5432/${POSTGRES_DB:-cosmetia}
+      JWT_SECRET: ${JWT_SECRET:?Configura JWT_SECRET en deploy/.env (ver deploy/.env.example)}
+      PORT: "3000"
+    volumes:
+      - uploads:/app/uploads
+    expose:
+      - "3000"
+
+  web:
+    build: ../apps/web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8090:80"
+
+volumes:
+  pgdata:
+  uploads:

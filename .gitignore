@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.env
+*.log
+.DS_Store
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
+apps/web/dist/
+coverage/
+
+# Datos sensibles / no publicados (se entregan por privado)
+deploy/.env
+apps/api/prisma/seed.js
+apps/api/prisma/seed-extra.js
